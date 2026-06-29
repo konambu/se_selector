@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SE Selector</title>
+  <style>
+    :root {
+      --bg: #161311;
+      --panel: #241d18;
+      --panel-2: #2f251d;
+      --ink: #f7e7c6;
+      --muted: #bda98a;
+      --accent: #7b5d38;
+      --good: #3b6d49;
+      --warn: #76562c;
+      --danger: #6a3131;
+      --line: #4c3c2f;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Meiryo", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    button, input {
+      font: inherit;
+    }
+    .app {
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      min-height: 100vh;
+      gap: 12px;
+      padding: 16px;
+    }
+    .bar, .footer {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .panel {
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    }
+    .top-panel {
+      padding: 12px;
+    }
+    .grow { flex: 1; }
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-right: 12px;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .btn {
+      border: 1px solid var(--line);
+      background: #4d3b29;
+      color: var(--ink);
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      min-height: 42px;
+    }
+    .btn:hover { filter: brightness(1.08); }
+    .btn-good { background: #375740; }
+    .btn-warn { background: #6a4b22; }
+    .btn-danger { background: #633232; }
+    .btn-ghost { background: #312720; }
+    .input {
+      min-height: 42px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #191511;
+      color: var(--ink);
+      min-width: 180px;
+    }
+    .favorites {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .fav {
+      background: #3a2e23;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 12px;
+      cursor: pointer;
+      color: var(--ink);
+    }
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      min-height: 0;
+    }
+    .side {
+      padding: 14px;
+      display: grid;
+      grid-template-rows: auto auto auto 1fr auto;
+      gap: 12px;
+      min-height: 420px;
+    }
+    .side h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+    .filename {
+      font-size: 18px;
+      font-weight: 700;
+      word-break: break-all;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+      min-height: 18px;
+    }
+    .wave {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #18130f;
+      width: 100%;
+      height: 180px;
+      display: block;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .status-box {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #1a1512;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .footer {
+      justify-content: space-between;
+      padding: 10px 12px;
+    }
+    .kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #1a1512;
+      margin-right: 4px;
+      color: var(--ink);
+    }
+    .empty {
+      display: grid;
+      place-items: center;
+      text-align: center;
+      min-height: 320px;
+      color: var(--muted);
+      padding: 24px;
+    }
+    .warning {
+      color: #ffd089;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel top-panel">
+      <div class="bar">
+        <div class="title">SE Selector</div>
+        <button class="btn" id="pick-folder">フォルダを選ぶ</button>
+        <input class="input" id="favorite-name" placeholder="お気に入り名" />
+        <button class="btn btn-ghost" id="save-favorite">今のフォルダをお気に入り登録</button>
+        <div class="grow sub" id="folder-label">フォルダ未選択</div>
+      </div>
+      <div class="favorites" id="favorites"></div>
+    </div>
+
+    <div class="panel top-panel">
+      <div class="bar">
+        <div class="status-box" id="pair-status">ペア未読み込み</div>
+        <div class="status-box" id="rule-status">対応規則: `_a/_b`, `-a/-b`, `_left/_right`, `_01/_02`</div>
+      </div>
+      <div class="sub" id="message-line">Chrome / Edge 系ブラウザで使ってください。最初にフォルダ権限を許可すると、その後はかなり楽です。</div>
+    </div>
+
+    <div class="main" id="main-view">
+      <div class="panel side">
+        <h2>A 側</h2>
+        <div class="filename" id="left-name">-</div>
+        <div class="meta" id="left-meta">-</div>
+        <canvas class="wave" id="left-wave" width="800" height="180"></canvas>
+        <div class="actions">
+          <button class="btn" id="play-left">再生 A</button>
+          <button class="btn btn-good" id="choose-left">A を採用</button>
+        </div>
+      </div>
+
+      <div class="panel side">
+        <h2>B 側</h2>
+        <div class="filename" id="right-name">-</div>
+        <div class="meta" id="right-meta">-</div>
+        <canvas class="wave" id="right-wave" width="800" height="180"></canvas>
+        <div class="actions">
+          <button class="btn" id="play-right">再生 B</button>
+          <button class="btn btn-good" id="choose-right">B を採用</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel footer">
+      <div>
+        <button class="btn btn-warn" id="pool-pair">Pool</button>
+        <button class="btn btn-ghost" id="skip-pair">Skip</button>
+      </div>
+      <div class="sub">
+        <span class="kbd">Q</span>再生A
+        <span class="kbd">W</span>再生B
+        <span class="kbd">1</span>A採用
+        <span class="kbd">2</span>B採用
+        <span class="kbd">P</span>Pool
+        <span class="kbd">S</span>Skip
+        <span class="kbd">Space</span>停止
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const FAVORITES_DB = "se-selector-favorites-v1";
+    const FAVORITES_STORE = "favorites";
+    const AUDIO_EXTS = new Set([".mp3", ".wav", ".ogg", ".m4a", ".flac"]);
+    const PAIR_PATTERNS = [
+      { suffix: "_a", counterpart: "_b", side: "A" },
+      { suffix: "-a", counterpart: "-b", side: "A" },
+      { suffix: "_left", counterpart: "_right", side: "A" },
+      { suffix: "-left", counterpart: "-right", side: "A" },
+      { suffix: "_01", counterpart: "_02", side: "A" }
+    ];
+
+    const state = {
+      folderHandle: null,
+      folderName: "",
+      pairs: [],
+      index: 0,
+      current: null,
+      audio: null,
+      favorites: []
+    };
+
+    const ui = {
+      folderLabel: document.getElementById("folder-label"),
+      pairStatus: document.getElementById("pair-status"),
+      messageLine: document.getElementById("message-line"),
+      favorites: document.getElementById("favorites"),
+      favoriteName: document.getElementById("favorite-name"),
+      leftName: document.getElementById("left-name"),
+      rightName: document.getElementById("right-name"),
+      leftMeta: document.getElementById("left-meta"),
+      rightMeta: document.getElementById("right-meta"),
+      leftWave: document.getElementById("left-wave"),
+      rightWave: document.getElementById("right-wave")
+    };
+
+    function setMessage(message, warning = false) {
+      ui.messageLine.textContent = message;
+      ui.messageLine.classList.toggle("warning", warning);
+    }
+
+    async function openFavoritesDb() {
+      return await new Promise((resolve, reject) => {
+        const request = indexedDB.open(FAVORITES_DB, 1);
+        request.onupgradeneeded = () => {
+          request.result.createObjectStore(FAVORITES_STORE, { keyPath: "name" });
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function waitTransaction(tx) {
+      await new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    }
+
+    async function loadFavorites() {
+      const db = await openFavoritesDb();
+      const tx = db.transaction(FAVORITES_STORE, "readonly");
+      const store = tx.objectStore(FAVORITES_STORE);
+      const request = store.getAll();
+      const items = await new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+      state.favorites = items.sort((a, b) => a.name.localeCompare(b.name, "ja"));
+      renderFavorites();
+    }
+
+    async function saveFavorite(name, handle) {
+      const db = await openFavoritesDb();
+      const tx = db.transaction(FAVORITES_STORE, "readwrite");
+      tx.objectStore(FAVORITES_STORE).put({ name, handle });
+      await waitTransaction(tx);
+    }
+
+    async function deleteFavorite(name) {
+      const db = await openFavoritesDb();
+      const tx = db.transaction(FAVORITES_STORE, "readwrite");
+      tx.objectStore(FAVORITES_STORE).delete(name);
+      await new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    function renderFavorites() {
+      ui.favorites.innerHTML = "";
+      for (const fav of state.favorites) {
+        const wrap = document.createElement("div");
+        wrap.style.display = "flex";
+        wrap.style.gap = "6px";
+
+        const openBtn = document.createElement("button");
+        openBtn.className = "fav";
+        openBtn.textContent = fav.name;
+        openBtn.onclick = async () => {
+          try {
+            const ok = await ensurePermission(fav.handle, true);
+            if (!ok) {
+              setMessage("お気に入りフォルダの再許可が必要です。", true);
+              return;
+            }
+            await loadFolder(fav.handle, fav.name);
+          } catch (error) {
+            setMessage(`お気に入りを開けませんでした: ${error.message}`, true);
+          }
+        };
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "fav";
+        removeBtn.textContent = "×";
+        removeBtn.onclick = async () => {
+          await deleteFavorite(fav.name);
+          await loadFavorites();
+        };
+
+        wrap.append(openBtn, removeBtn);
+        ui.favorites.appendChild(wrap);
+      }
+    }
+
+    async function ensurePermission(handle, writable = false) {
+      const options = writable ? { mode: "readwrite" } : {};
+      if ((await handle.queryPermission(options)) === "granted") {
+        return true;
+      }
+      return (await handle.requestPermission(options)) === "granted";
+    }
+
+    function getExtension(name) {
+      const index = name.lastIndexOf(".");
+      return index >= 0 ? name.slice(index).toLowerCase() : "";
+    }
+
+    function stripExtension(name) {
+      const index = name.lastIndexOf(".");
+      return index >= 0 ? name.slice(0, index) : name;
+    }
+
+    function detectPairing(fileNames) {
+      const lookup = new Map(fileNames.map((name) => [name.toLowerCase(), name]));
+      const pairs = [];
+      const seen = new Set();
+
+      for (const rawName of fileNames) {
+        const lowerName = rawName.toLowerCase();
+        if (seen.has(lowerName)) {
+          continue;
+        }
+        const ext = getExtension(rawName);
+        if (!AUDIO_EXTS.has(ext)) {
+          continue;
+        }
+        const stem = stripExtension(rawName);
+        const lowerStem = stem.toLowerCase();
+
+        for (const pattern of PAIR_PATTERNS) {
+          if (!lowerStem.endsWith(pattern.suffix)) {
+            continue;
+          }
+          const base = stem.slice(0, stem.length - pattern.suffix.length);
+          const otherName = `${base}${pattern.counterpart}${ext}`.toLowerCase();
+          if (!lookup.has(otherName)) {
+            continue;
+          }
+          const leftName = rawName;
+          const rightName = lookup.get(otherName);
+          seen.add(leftName.toLowerCase());
+          seen.add(rightName.toLowerCase());
+          pairs.push({
+            key: base || stem,
+            left: leftName,
+            right: rightName
+          });
+          break;
+        }
+      }
+
+      pairs.sort((a, b) => a.key.localeCompare(b.key, "ja"));
+      return pairs;
+    }
+
+    async function listFolderFiles(handle) {
+      const names = [];
+      for await (const [name, child] of handle.entries()) {
+        if (child.kind === "file") {
+          names.push(name);
+        }
+      }
+      return names;
+    }
+
+    async function loadFolder(handle, nameHint = "") {
+      state.folderHandle = handle;
+      state.folderName = nameHint || handle.name;
+      ui.folderLabel.textContent = `現在: ${state.folderName}`;
+      const names = await listFolderFiles(handle);
+      state.pairs = detectPairing(names);
+      state.index = 0;
+      ui.pairStatus.textContent = `ペア数: ${state.pairs.length}`;
+      if (state.pairs.length === 0) {
+        state.current = null;
+        renderEmpty("このフォルダでは A/B ペアが見つかりませんでした。");
+        setMessage("ファイル名を `slash_a.mp3 / slash_b.mp3` みたいに揃えると自動で拾います。", true);
+        return;
+      }
+      setMessage("読み込み完了。Q/W で再生、1/2 で採用できます。");
+      await showCurrentPair();
+    }
+
+    function renderEmpty(message) {
+      ui.leftName.textContent = "-";
+      ui.rightName.textContent = "-";
+      ui.leftMeta.textContent = message;
+      ui.rightMeta.textContent = "";
+      clearCanvas(ui.leftWave);
+      clearCanvas(ui.rightWave);
+    }
+
+    function clearCanvas(canvas) {
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#18130f";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    async function readPairAudio(pair) {
+      const leftHandle = await state.folderHandle.getFileHandle(pair.left);
+      const rightHandle = await state.folderHandle.getFileHandle(pair.right);
+      const leftFile = await leftHandle.getFile();
+      const rightFile = await rightHandle.getFile();
+      return {
+        pair,
+        left: { handle: leftHandle, file: leftFile, url: URL.createObjectURL(leftFile) },
+        right: { handle: rightHandle, file: rightFile, url: URL.createObjectURL(rightFile) }
+      };
+    }
+
+    async function showCurrentPair() {
+      stopAudio();
+      if (!state.pairs.length) {
+        renderEmpty("比較対象がありません。");
+        ui.pairStatus.textContent = "完了";
+        return;
+      }
+      const pair = state.pairs[state.index];
+      state.current = await readPairAudio(pair);
+      const currentNumber = state.index + 1;
+      ui.pairStatus.textContent = `${currentNumber} / ${state.pairs.length} : ${pair.key}`;
+      ui.leftName.textContent = pair.left;
+      ui.rightName.textContent = pair.right;
+      ui.leftMeta.textContent = await formatMeta(state.current.left.file);
+      ui.rightMeta.textContent = await formatMeta(state.current.right.file);
+      await drawWave(ui.leftWave, state.current.left.file);
+      await drawWave(ui.rightWave, state.current.right.file);
+    }
+
+    async function formatMeta(file) {
+      const duration = await getDuration(file);
+      const sizeKb = Math.round(file.size / 1024);
+      return `${duration.toFixed(2)} sec / ${sizeKb} KB`;
+    }
+
+    async function getDuration(file) {
+      return await new Promise((resolve) => {
+        const audio = document.createElement("audio");
+        audio.preload = "metadata";
+        audio.src = URL.createObjectURL(file);
+        audio.onloadedmetadata = () => {
+          const result = Number.isFinite(audio.duration) ? audio.duration : 0;
+          URL.revokeObjectURL(audio.src);
+          resolve(result);
+        };
+        audio.onerror = () => resolve(0);
+      });
+    }
+
+    async function drawWave(canvas, file) {
+      clearCanvas(canvas);
+      const ctx = canvas.getContext("2d");
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const decoded = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+        const data = decoded.getChannelData(0);
+        const step = Math.ceil(data.length / canvas.width);
+        const amp = canvas.height / 2;
+        ctx.fillStyle = "#18130f";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "#8ec6ff";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i < canvas.width; i++) {
+          let min = 1.0;
+          let max = -1.0;
+          for (let j = 0; j < step; j++) {
+            const datum = data[(i * step) + j] || 0;
+            if (datum < min) min = datum;
+            if (datum > max) max = datum;
+          }
+          ctx.moveTo(i, (1 + min) * amp);
+          ctx.lineTo(i, (1 + max) * amp);
+        }
+        ctx.stroke();
+        audioContext.close();
+      } catch (error) {
+        ctx.fillStyle = "#bda98a";
+        ctx.font = "16px Meiryo";
+        ctx.fillText("wave unavailable", 18, 28);
+      }
+    }
+
+    function stopAudio() {
+      if (state.audio) {
+        state.audio.pause();
+        state.audio.currentTime = 0;
+      }
+    }
+
+    function playSide(side) {
+      if (!state.current) return;
+      stopAudio();
+      const src = side === "left" ? state.current.left.url : state.current.right.url;
+      const audio = new Audio(src);
+      audio.play();
+      state.audio = audio;
+    }
+
+    async function removeFileAndImport(name) {
+      const candidates = [name, `${name}.import`];
+      for (const target of candidates) {
+        try {
+          await state.folderHandle.removeEntry(target);
+        } catch (error) {
+        }
+      }
+    }
+
+    async function copyToFolder(targetFolder, file, name) {
+      const handle = await targetFolder.getFileHandle(name, { create: true });
+      const writable = await handle.createWritable();
+      await writable.write(await file.arrayBuffer());
+      await writable.close();
+    }
+
+    async function moveToPool(current) {
+      const poolHandle = await state.folderHandle.getDirectoryHandle("_pool", { create: true });
+      await copyToFolder(poolHandle, current.left.file, current.pair.left);
+      await copyToFolder(poolHandle, current.right.file, current.pair.right);
+      await removeFileAndImport(current.pair.left);
+      await removeFileAndImport(current.pair.right);
+    }
+
+    async function chooseWinner(side) {
+      if (!state.current) return;
+      const loser = side === "left" ? state.current.pair.right : state.current.pair.left;
+      await removeFileAndImport(loser);
+      state.pairs.splice(state.index, 1);
+      if (state.index >= state.pairs.length) {
+        state.index = Math.max(0, state.pairs.length - 1);
+      }
+      await showCurrentPair();
+      setMessage(`${side === "left" ? "A" : "B"} を採用しました。`);
+    }
+
+    async function poolPair() {
+      if (!state.current) return;
+      await moveToPool(state.current);
+      state.pairs.splice(state.index, 1);
+      if (state.index >= state.pairs.length) {
+        state.index = Math.max(0, state.pairs.length - 1);
+      }
+      await showCurrentPair();
+      setMessage("ペアを _pool へ移動しました。");
+    }
+
+    async function skipPair() {
+      if (!state.pairs.length) return;
+      state.index = (state.index + 1) % state.pairs.length;
+      await showCurrentPair();
+    }
+
+    async function pickFolder() {
+      try {
+        const handle = await window.showDirectoryPicker({ mode: "readwrite" });
+        await loadFolder(handle);
+      } catch (error) {
+        if (error && error.name === "AbortError") {
+          return;
+        }
+        setMessage(`フォルダ選択に失敗しました: ${error.message}`, true);
+      }
+    }
+
+    async function saveCurrentFavorite() {
+      if (!state.folderHandle) {
+        setMessage("先にフォルダを選んでください。", true);
+        return;
+      }
+      const name = ui.favoriteName.value.trim() || state.folderName || state.folderHandle.name;
+      await saveFavorite(name, state.folderHandle);
+      ui.favoriteName.value = "";
+      await loadFavorites();
+      setMessage(`お気に入り「${name}」を保存しました。`);
+    }
+
+    document.getElementById("pick-folder").addEventListener("click", pickFolder);
+    document.getElementById("save-favorite").addEventListener("click", saveCurrentFavorite);
+    document.getElementById("play-left").addEventListener("click", () => playSide("left"));
+    document.getElementById("play-right").addEventListener("click", () => playSide("right"));
+    document.getElementById("choose-left").addEventListener("click", () => chooseWinner("left"));
+    document.getElementById("choose-right").addEventListener("click", () => chooseWinner("right"));
+    document.getElementById("pool-pair").addEventListener("click", poolPair);
+    document.getElementById("skip-pair").addEventListener("click", skipPair);
+
+    window.addEventListener("keydown", async (event) => {
+      if (["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
+        return;
+      }
+      switch (event.key.toLowerCase()) {
+        case "q":
+          playSide("left");
+          break;
+        case "w":
+          playSide("right");
+          break;
+        case "1":
+          await chooseWinner("left");
+          break;
+        case "2":
+          await chooseWinner("right");
+          break;
+        case "p":
+          await poolPair();
+          break;
+        case "s":
+          await skipPair();
+          break;
+        case " ":
+          event.preventDefault();
+          stopAudio();
+          break;
+      }
+    });
+
+    loadFavorites().catch((error) => {
+      setMessage(`お気に入りの読み込みに失敗しました: ${error.message}`, true);
+    });
+  </script>
+</body>
+</html>
